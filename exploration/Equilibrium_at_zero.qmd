@@ -1,0 +1,174 @@
+---
+title: "Parameter fitting for equilibrium"
+format: pdf
+editor: visual
+---
+
+```{r}
+pacman::p_load(ggplot2,#plots
+               tictoc, #timing
+               dplyr, #filter 
+               e1071) #skewness
+```
+
+```{r}
+source("../functions_main/other_functions.R")
+source("../functions_main/no_plasticity.R")
+source("../functions_main/total_plasticity.R")
+```
+
+Out of curiosity let's run five simulations with the following parameter
+
+```{r}
+five_sim<-run_simulations(immutable_scenario, #type of simulation
+                        5, #number of simulations
+                        100, #years of the simulation
+                        0.1, 0.5, #climate mean and s.d.
+                        0, 1, 0.2, #trait int. mean and s.d.
+                        0, 1, 0.2) #demo int. mean and s.d.
+```
+
+```{r}
+make_a_plot_sim(five_sim)
+```
+
+We see that with these parameter all the 5 different simulations eventually go extinct.
+
+The three events of reduction of the population are all happening in a fictional autumn/winter. The year of the animal is updated during spring after the reproduction event. Animal that are born in spring and died in autumn/winter of the same year are then counted.
+
+A warm year implies that newborns will have higher chances of survival and, once adults, will produce more offspring.
+
+Conversely, in a cold year, the number of offspring depends solely on the fixed fertility values of the mothers alive in that year. Offspring born in cold years are less likely to survive in the following years and will produce fewer newborns themselves.
+
+--------
+
+### The assumption is that at temperature 0 the population should be at equilibrium around its initial starting value.
+
+If this is not the case, we need to adjust the intercept of the trait–demography relationship so that the population is at equilibrium.
+
+```{r}
+#temperature 0 fixed for all the years
+evo_immutable_0 <- immutable_scenario(100,
+                               0,0,
+                               0,1,0,
+                               0,1,0)
+alive_immutable_0 <- alive_animals(evo_immutable_0)
+```
+
+```{r}
+make_a_plot(alive_immutable_0)
+```
+
+```{r}
+#avg percentage decrease among years
+x<- alive_immutable_0$alive
+(diff(x) / head(x, -1) * 100)[1:10]|>mean()
+```
+
+In this scenario there is no variability, all the animals have the same trait value that equals the demographic value.
+
+When the temperature is constant to 0°C the population slowly dies out (-20% ca. between every year).
+
+```{r}
+evo_immutable_0.2 <- immutable_scenario(100,
+                               0.2,0,
+                               0,1,0,
+                               0,1,0)
+alive_immutable_0.2 <- alive_animals(evo_immutable_0.2)
+make_a_plot(alive_immutable_0.2)
+```
+
+```{r}
+x<- alive_immutable_0.2$alive
+(diff(x) / head(x, -1) * 100)[1:25]|>mean()
+```
+
+Even with positive temperature values the population is slowly decaying, I assume it is related with the aging constraint, this time with a rate of around -7% between each year.
+
+```{r}
+evo_immutable_0.28 <- immutable_scenario(100,
+                               0.28,0,
+                               0,1,0,
+                               0,1,0)
+alive_immutable_0.28 <- alive_animals(evo_immutable_0.28)
+```
+
+```{r}
+make_a_plot(alive_immutable_0.28)
+```
+
+```{r}
+x<- alive_immutable_0.28$alive
+(diff(x) / head(x, -1) * 100)[1:80]|>mean()
+```
+
+It seems to be 0.28°C the right value for preserving population equilibrium, when both reaction norm and trait-demographic are identity function: $x=y\quad ;\quad y=z$
+
+With that said we can modify the intercept value for the demographic value to 0.28 knowing that this is the value that allows us to center the temperature at 0°C as the equilibrium temperature
+
+```{r}
+set.seed(42)
+immutable_constant_t<-run_simulations(immutable_scenario, 10, #simulations
+                100, #years
+                0,0,
+                0,1,0,
+                0.28,1,0) #here the intercept is changed to 0.28
+          
+alives_at_year_100<-immutable_constant_t |>
+  group_by(simulation) |>
+  summarise(last_alive = last(alive))
+alives_at_year_100$last_alive|>mean()
+alives_at_year_100$last_alive|>sd()
+```
+
+Indeed if we run the simulation 10 times and we observe the last value (at 100 years), its mean is gonna be close to 1000 (starting animals)
+
+As a sanity check I will run the total_plasticity function with the same parameters, the result should be similar.
+
+```{r}
+set.seed(42)
+plastic_constant_t<-run_simulations(plastic_scenario, 10, #simulations
+                100, #years
+                0,0,
+                0,1,0,
+                0.28,1,0)
+alives_at_year_100<-plastic_constant_t |>
+  group_by(simulation) |>
+  summarise(last_alive = last(alive))
+alives_at_year_100$last_alive|>mean()
+alives_at_year_100$last_alive|>sd()
+```
+
+Functions return the same values because they both are never updating the characteristics of the individuals since the temperature is constant.
+
+Let's now see how do they behave when the temperature is not anymore constant (every animal still behave identically to the change). The two functions now should return different values
+
+```{r}
+set.seed(42)
+immutable_sd_t<-run_simulations(immutable_scenario, 10, #simulations
+                100, #years
+                0,0.5, #sd =! 0
+                0,1,0,
+                0.28,1,0)
+alives_at_year_100<-immutable_sd_t |>
+  group_by(simulation) |>
+  summarise(last_alive = last(alive))
+alives_at_year_100$last_alive|>mean()
+alives_at_year_100$last_alive|>sd()
+```
+
+```{r}
+set.seed(42)
+immutable_sd_t<-run_simulations(plastic_scenario, 10, #simulations
+                100, #years
+                0,0.5,
+                0,1,0,
+                0.28,1,0)
+alives_at_year_100<-immutable_sd_t |>
+  group_by(simulation) |>
+  summarise(last_alive = last(alive))
+alives_at_year_100$last_alive|>mean()
+alives_at_year_100$last_alive|>sd()
+```
+
+It seems the functions are now working fine, I can now update the parameters and run them on the server.

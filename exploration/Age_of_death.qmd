@@ -1,0 +1,87 @@
+---
+title: "Distribution age of death"
+format: pdf
+editor: visual
+---
+
+```{r}
+pacman::p_load(ggplot2,#plots
+               tictoc, #timing
+               dplyr, #filter 
+               purrr,
+               data.table
+)
+```
+
+```{r}
+source("../functions_main/no_plasticity.R")
+source("../functions_main/total_plasticity.R")
+source("../functions_main/other_functions.R")
+```
+
+I run 10 times each function to obtain
+
+```{r}
+evo_immutable <- map_dfr(1:10, ~ immutable_scenario(
+  100,
+  0, 1,
+  0, 1, 0.3,
+  0.28, 1, 0
+))
+evo_plastic <-  map_dfr(1:10, ~ plastic_scenario(100,
+                 0,1,
+                 0,1,0.3,
+                 0.28,1,0))
+evo_immutable$age_death <- evo_immutable$year- evo_immutable$birth_year
+evo_plastic$age_death<- evo_plastic$year - evo_plastic$birth_year
+```
+
+```{r}
+evo_immutable$age_death|>min()
+```
+
+```{r}
+p1<- ggplot(evo_immutable, aes(x = age_death)) +
+  geom_histogram(
+    binwidth = 1,
+    aes(y = after_stat(count) / sum(after_stat(count)) * 100),
+    fill = "steelblue",
+    color = "black",
+    center = 0) +
+  scale_x_continuous(breaks=c(-1:5))+
+  ylim(0,100)+
+  ggtitle("Immutable Scenario")+
+  ylab("Percentage (%)") +
+  xlab("Age at Death") +
+  theme(
+    axis.title.x = element_text(size = 18),
+    axis.title.y = element_text(size = 18),
+    axis.text.x = element_text(size = 14),   # numeri asse x più 
+    axis.text.y = element_text(size = 14), 
+    plot.title = element_text(size = 20, face = "bold", hjust=0.5))
+ggsave("immutable_death.png", plot = p1, width = 6, height = 5, dpi = 300)
+p1
+```
+
+```{r}
+p2<- ggplot(evo_plastic, aes(x = age_death)) +
+  geom_histogram(
+    binwidth = 1,
+    aes(y = after_stat(count) / sum(after_stat(count)) * 100),
+    fill = "#6d9ead",
+    color = "black",
+    center = 0) +
+  scale_x_continuous(breaks=c(-1:5))+
+  ylim(0,100)+
+  ggtitle("Plastic Scenario")+
+  ylab("Percentage (%)") +
+  xlab("Age at Death") +
+  theme(
+    axis.title.x = element_text(size = 18),
+    axis.title.y = element_text(size = 18),
+    axis.text.x = element_text(size = 14),   # numeri asse x più 
+    axis.text.y = element_text(size = 14), 
+    plot.title = element_text(size = 20, face = "bold", hjust=0.5))
+ggsave("plasticity_death.png", plot = p2, width = 6, height = 5, dpi = 300)
+p2
+```

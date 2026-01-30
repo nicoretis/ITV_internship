@@ -1,0 +1,216 @@
+---
+title: "Coefficient of Variation"
+format: pdf
+editor: visual
+---
+
+```{r}
+pacman::p_load(ggplot2,#plots
+               tictoc, #timing
+               dplyr, #filter 
+               e1071 #skewness
+               )
+```
+
+```{r}
+source("../functions_main/calculate_trait&calculate_demo_v10.R")
+```
+
+#### 500 simulations and CV analysis
+
+I computed separately on the server 500 simulation for each setup:
+
+|                   |          |                          |
+|-------------------|----------|--------------------------|
+| Coefficient Trait | Type     | Standard deviation Trait |
+| 0.55              | Small    | 0.05                     |
+| 0.55              | Moderate | 0.1                      |
+| 0.55              | High     | 0.15                     |
+
+this is the result with much more detail:
+
+```{r}
+small<-readRDS("../server_runs/run_sim/RDS/final_small_sd.rds")
+moderate<- readRDS("../server_runs/run_sim/RDS/final_moderate_sd.rds")
+high <- readRDS("../server_runs/run_sim/RDS/final_high_sd.rds")
+```
+
+```{r}
+cv_combined_500 <- bind_rows(
+  data.frame(cv = coefficient_of_variation(small), sd = "low"),
+  data.frame(cv = coefficient_of_variation(moderate), sd = "medium"),
+  data.frame(cv = coefficient_of_variation(high), sd = "high")) |>
+ 
+  mutate(sd = factor(sd, levels = c("low", "medium", "high")))
+```
+
+```{r}
+ggplot(cv_combined_500, aes(x = cv, fill = sd)) +
+  geom_histogram(binwidth = 0.13, color = "black", alpha = 0.6) +
+  geom_vline(data = cv_combined_500 %>%
+               group_by(sd) %>%
+               summarise(mean_cv = mean(cv)),
+             aes(xintercept = mean_cv, color = sd),
+             linetype = "dashed", linewidth = 1) +
+  labs(x = "Coefficient of Variation", y = "Count",caption = "Dashed line = mean") +
+  theme_minimal() +
+  coord_flip() +
+  facet_wrap(~sd, ncol = 3)  
+```
+
+```{r}
+cv_combined_500 |>
+       group_by(sd) |>
+            summarise(mean_cv = mean(cv))
+```
+
+We see that the CV increases linearly as the standard deviation of the trait linearly increases (0.05, 0.10, 0.15)
+
+```{r}
+cv_combined_500 |>
+       group_by(sd) |>
+            summarise(median_cv = median(cv))
+```
+
+If we chose the median statistic the difference between the standard deviation are even smaller. The median is robust to skewness.
+
+```{r}
+extinction_500 <- c(extinct_count(small),extinct_count(moderate), extinct_count(high))
+sd_labels <- c("low", "medium", "high")
+
+extinction_df_500 <- data.frame(
+  count = extinction_500,
+  sd = factor(sd_labels, levels = sd_labels)
+)
+
+
+ggplot(extinction_df_500, aes(x = sd, y = count, fill = sd)) +
+  geom_bar(stat = "identity", color = "black", alpha = 0.7) +
+  aes(color=sd)+
+  labs(x = "SD Category", y = "Extinction Count") +
+  theme_minimal()
+
+```
+
+With 500 simulations, we now have enough resolution. Medium standard deviation shows the lowest number of extinctions, followed by low and then high standard deviation.
+
+#### When they go extinct?
+
+We now check the distribution of the year in which the population go extinct, I expect to have a sort of uniform distribution.
+
+```{r}
+extinct_year <- function(table){
+  table |>
+    group_by(simulation) |>
+    filter(n() < 101)|>
+    summarise(extinct_year=max(year)) |>
+    pull(extinct_year)
+}
+
+```
+
+```{r}
+year_small <- data.frame(year = extinct_year(small), sd = "Small")
+year_moderate <- data.frame(year = extinct_year(moderate), sd = "Moderate")
+year_high <- data.frame(year = extinct_year(high), sd = "High")
+
+year_all <- rbind(year_small, year_moderate, year_high)
+
+ggplot(year_all, aes(x = year)) +
+  geom_histogram(aes(y = after_stat(density)), binwidth = 3, color = "black", alpha = 0.6, fill = "skyblue") +
+  facet_wrap(~sd, ncol = 1, scales = "fixed") +
+  theme_minimal() +
+  labs(x = "Year of Extinction", y = "Count", title = "Extinction Years by SD")
+
+```
+
+The distribution appears left-skewed, with extinctions occurring a little more within the first 50 years of the simulation. This skew is likely due to the low initial population size (200 individuals). After a few years, the number of surviving individuals becomes more variable (ranging from 1 to around 20,000 in most cases), and the population’s expected time to extinction becomes roughly uniform.
+
+#### Analysis with a different parameter table (double of s.d.)
+
+|                   |           |                          |
+|-------------------|-----------|--------------------------|
+| Coefficient Trait | Type      | Standard deviation Trait |
+| 0.55              | Small2    | 0.1                      |
+| 0.55              | Moderate2 | 0.2                      |
+| 0.55              | High2     | 0.3                      |
+
+```{r}
+small2<- readRDS("../server_runs/run_sim2/RDS2/final_small_sd_2.rds")
+moderate2<- readRDS("../server_runs/run_sim2/RDS2/final_moderate_sd_2.rds")
+high2<- readRDS("../server_runs/run_sim2/RDS2/final_high_sd_2.rds")
+```
+
+```{r}
+cv_combined_500_2 <- bind_rows(
+  data.frame(cv = coefficient_of_variation(small2), sd = "low"),
+  data.frame(cv = coefficient_of_variation(moderate2), sd = "medium"),
+  data.frame(cv = coefficient_of_variation(high2), sd = "high")) |>
+  mutate(sd = factor(sd, levels = c("low", "medium", "high")))
+```
+
+```{r}
+ggplot(cv_combined_500_2, aes(x = cv, fill = sd)) +
+  geom_histogram(binwidth = 0.20, color = "black", alpha = 0.6) +
+  geom_vline(data = cv_combined_500_2 %>%
+               group_by(sd) %>%
+               summarise(mean_cv = mean(cv)),
+             aes(xintercept = mean_cv, color = sd),
+             linetype = "dashed", linewidth = 1) +
+  labs(x = "Coefficient of Variation", y = "Count",caption = "Dashed line = mean") +
+  theme_minimal() +
+  coord_flip() +
+  facet_wrap(~sd, ncol = 3)  
+```
+
+What is clear from this plot is an increase on the skewness of the distribution when choosing higher level of standard deviations.
+
+```{r}
+cv_combined_500_2 |>
+       group_by(sd) |>
+            summarise(mean_cv = mean(cv))
+```
+
+```{r}
+cv_combined_500_2 |>
+       group_by(sd) |>
+            summarise(median_cv = median(cv))
+```
+
+```{r}
+cv_combined_500_2 |>
+       group_by(sd) |>
+            summarise(skewness = skewness(cv))
+
+```
+
+```{r}
+extinction_500_2 <- c(extinct_count(small2),extinct_count(moderate2), extinct_count(high2))
+sd_labels <- c("low", "medium", "high")
+
+extinction_df_500_2 <- data.frame(
+  count = extinction_500_2,
+  sd = factor(sd_labels, levels = sd_labels)
+)
+
+
+ggplot(extinction_df_500_2, aes(x = sd, y = count, fill = sd)) +
+  geom_bar(stat = "identity", color = "black", alpha = 0.7) +
+  aes(color=sd)+
+  labs(x = "SD Category", y = "Extinction Count") +
+  theme_minimal()
+```
+
+```{r}
+year_small2 <- data.frame(year = extinct_year(small2), sd = "Small")
+year_moderate2 <- data.frame(year = extinct_year(moderate2), sd = "Moderate")
+year_high2 <- data.frame(year = extinct_year(high2), sd = "High")
+
+year_all2 <- rbind(year_small2, year_moderate2, year_high2)
+
+ggplot(year_all2, aes(x = year)) +
+  geom_histogram(aes(y = after_stat(density)), binwidth = 3, color = "black", alpha = 0.6, fill = "orange") +
+  facet_wrap(~sd, ncol = 1, scales = "fixed") +
+  theme_minimal() +
+  labs(x = "Year of Extinction", y = "Count", title = "Extinction Years by SD")
+```

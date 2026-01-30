@@ -1,0 +1,147 @@
+---
+title: "CV of Plastic and Immutable Scenario with different S.D. "
+format: pdf
+editor: visual
+---
+
+```{r}
+pacman::p_load(ggplot2,#plots
+               tictoc, #timing
+               dplyr, #filter 
+               e1071 #skewness,
+)
+```
+
+```{r}
+source("../functions_main/other_functions.R")
+```
+
+Space
+
+Space
+
+Space
+
+#### CV analysis
+
+I computed separately on the server 500 simulation for each case:
+
+|      |             |                   |          |                          |
+|------|-------------|-------------------|----------|--------------------------|
+| Case | Trait given | Coefficient Trait | Type     | Standard deviation Trait |
+| 1    | Once        | 1                 | None     | 0                        |
+| 2    | Once        | 1                 | Small    | 0.15                     |
+| 3    | Once        | 1                 | Moderate | 0.3                      |
+| 4    | Once        | 1                 | High     | 0.45                     |
+
+|      |             |                   |          |                          |
+|------|-------------|-------------------|----------|--------------------------|
+| Case | Trait given | Coefficient Trait | Type     | Standard deviation Trait |
+| 5    | Every year  | 1                 | None     | 0                        |
+| 6    | Every year  | 1                 | Small    | 0.15                     |
+| 7    | Every year  | 1                 | Moderate | 0.3                      |
+| 8    | Every year  | 1                 | High     | 0.45                     |
+
+|  |  |  |  |  |  |
+|----|----|----|----|----|----|
+| Case | Trait given | Coefficient Trait | Type | SD Trait | Coefficient of plasticity |
+| 9 | Updated partially every year | 1 | None | 0 | 0.5 |
+| 10 | Updated partially every year | 1 | Small  | 0.15 | 0.5 |
+| 11 | Updated partially every year | 1 | Moderate | 0.3 | 0.5 |
+| 12 | Updated partially every year | 1 | High | 0.45 | 0.5 |
+
+### Immutable scenario
+
+```{r}
+case9 <-readRDS("../server_runs/RDS/case9.rds")
+case10<-readRDS("../server_runs/RDS/case10.rds")
+case11<- readRDS("../server_runs/RDS/case11.rds")
+case12 <- readRDS("../server_runs/RDS/case12.rds")
+```
+
+```{r}
+mix_plasticity_cv <- bind_rows(
+  data.frame(cv = coefficient_of_variation(case9), sd = "none"),
+  data.frame(cv = coefficient_of_variation(case10), sd = "low"),
+  data.frame(cv = coefficient_of_variation(case11), sd = "medium"),
+  data.frame(cv = coefficient_of_variation(case12), sd = "high")) |>
+  mutate(sd = factor(sd, levels = c("none","low", "medium", "high")))
+```
+
+```{r}
+mycolors <- c("#728f7c","#5da174","#3dba67", "#04cf48")
+p1 <- ggplot(mix_plasticity_cv, aes(x = cv, fill = sd)) +
+  geom_histogram(binwidth = 0.13, color = "black", alpha = 0.6) +
+  geom_vline(
+    data = mix_plasticity_cv |> group_by(sd) |> summarise(mean_cv = mean(cv)),
+    aes(xintercept = mean_cv),
+    color = "black", linetype = "dashed", linewidth = 1
+  ) +
+  labs(x = "Coefficient of Variation", y = "Counts of simulations") +
+  theme_minimal() +
+  coord_flip() +
+  xlim(0,7)+
+  scale_y_continuous(breaks = c(30, 60))+
+  facet_wrap(~sd, ncol = 4, strip.position = "top") +
+  scale_fill_manual(values = mycolors) +
+  ggtitle("Mixed Plasticity Scenario") +
+  theme(
+    legend.position = "none",
+    axis.title.x = element_text(size = 18),
+    axis.title.y = element_text(size = 18),
+    axis.text.x = element_text(size = 14),   
+    axis.text.y = element_text(size = 14),  
+    plot.title = element_text(size = 20, face = "bold", hjust=0.5),
+    strip.text = element_text(size = 16)
+  )
+ggsave("mix_plasticity_cv.png", plot = p1, width = 5, height = 6, dpi = 300)
+p1
+```
+
+```{r}
+mix_plasticity_cv<- mix_plasticity_cv |>
+       group_by(sd) |>
+            summarise(mean_cv = mean(cv))
+mix_plasticity_cv
+```
+
+```{r}
+mix_plasticity_extinction <- c(extinct_count(case9),extinct_count(case10),extinct_count(case11), extinct_count(case12))
+sd_labels <- c("none","low", "medium", "high")
+
+mix_plasticity_extinction_df <- data.frame(
+  sd = factor(sd_labels, levels = sd_labels),
+  count = mix_plasticity_extinction
+)
+
+
+mix_plasticity_extinction_df
+```
+
+```{r}
+
+p2 <- ggplot(mix_plasticity_extinction_df, aes(x = sd, y = count, fill = sd)) +
+  geom_bar(stat = "identity", color = "black", alpha = 0.7) +
+  scale_fill_manual(values = mycolors) +
+  labs(
+    x = "SD Category",
+    y = "Extinction Count",
+    title = "Mixed Plasticity Scenario"
+  ) +
+  ylim(0,420)+
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    axis.title.x = element_text(size = 18),
+    axis.title.y = element_text(size = 18),
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14),
+    plot.title = element_text(size = 20, face = "bold", hjust = 0.5)
+  )
+
+
+ggsave("extinction_count_mixed_scenario.png", plot = p2, width = 5, height = 6, dpi = 300)
+p2
+```
+
+Now we have to compare the three scenarios

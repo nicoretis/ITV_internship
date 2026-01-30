@@ -1,0 +1,9 @@
+We analyzed four levels of Gaussian variability in the trait of each animal: none, with no added noise, resulting in a strictly linear relationship between temperature, trait, and demographic value (mean trait = 1); low, with a standard deviation of 0.15; normal, with a standard deviation of 0.3; and high, with a standard deviation of 0.45.
+
+For each simulation, we computed the coefficient of variation (CV), defined as the ratio between the population standard deviation and the mean population size. After 500 simulations, we obtained a distribution of CV values, with the dotted line in the plots indicating the mean CV across all simulations.
+
+In the immutable trait scenario (Figures 1 and 3), each “animal” (or element) was assigned a trait once and retained it until removal. By contrast, in the plastic trait scenario (Figures 2 and 4), each animal received a newly assigned trait every year.
+
+In the immutable case (Figure 1), increasing trait variability led to a modest rise in the CV (from 1.12 with no variability to 1.42 under high variability). This was accompanied by a linear increase in extinction probability, from 21% with no variability to 48% with high variability.
+
+In the plastic case, the CV also increased with trait variability (from 1.63 to 1.83). However, extinction probabilities were consistently much higher (0.810, 0.776, 0.758, and 0.800, respectively), with the lowest extinction observed under the normal variability level (σ = 0.3).

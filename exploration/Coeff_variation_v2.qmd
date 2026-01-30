@@ -1,0 +1,272 @@
+---
+title: "CV of Plastic and Immutable Scenario with different S.D. "
+format: pdf
+editor: visual
+---
+
+```{r}
+pacman::p_load(ggplot2,#plots
+               tictoc, #timing
+               dplyr, #filter 
+               e1071 #skewness,
+)
+```
+
+```{r}
+source("../functions_main/other_functions.R")
+```
+
+Space
+
+Space
+
+Space
+
+#### CV analysis
+
+I computed separately on the server 500 simulation for each case:
+
+|      |             |                   |          |                          |
+|------|-------------|-------------------|----------|--------------------------|
+| Case | Trait given | Coefficient Trait | Type     | Standard deviation Trait |
+| 1    | Once        | 1                 | None     | 0                        |
+| 2    | Once        | 1                 | Small    | 0.15                     |
+| 3    | Once        | 1                 | Moderate | 0.3                      |
+| 4    | Once        | 1                 | High     | 0.45                     |
+
+|      |             |                   |          |                          |
+|------|-------------|-------------------|----------|--------------------------|
+| Case | Trait given | Coefficient Trait | Type     | Standard deviation Trait |
+| 5    | Every year  | 1                 | None     | 0                        |
+| 6    | Every year  | 1                 | Small    | 0.15                     |
+| 7    | Every year  | 1                 | Moderate | 0.3                      |
+| 8    | Every year  | 1                 | High     | 0.45                     |
+
+### Immutable scenario
+
+```{r}
+case1 <-readRDS("../job_sim/RDS/case1.rds")
+case2<-readRDS("../job_sim/RDS/case2.rds")
+case3<- readRDS("../job_sim/RDS/case3.rds")
+case4 <- readRDS("../job_sim/RDS/case4.rds")
+```
+
+```{r}
+immutable_cv <- bind_rows(
+  data.frame(cv = coefficient_of_variation(case1), sd = "none"),
+  data.frame(cv = coefficient_of_variation(case2), sd = "low"),
+  data.frame(cv = coefficient_of_variation(case3), sd = "medium"),
+  data.frame(cv = coefficient_of_variation(case4), sd = "high")) |>
+  mutate(sd = factor(sd, levels = c("none","low", "medium", "high")))
+```
+
+```{r}
+mycolors <- c("#edeef5","#c5caf0","#7083fa", "#0317ad")
+p1 <- ggplot(immutable_cv, aes(x = cv, fill = sd)) +
+  geom_histogram(binwidth = 0.13, color = "black", alpha = 0.6) +
+  geom_vline(
+    data = immutable_cv |> group_by(sd) |> summarise(mean_cv = mean(cv)),
+    aes(xintercept = mean_cv),
+    color = "black", linetype = "dashed", linewidth = 1
+  ) +
+  labs(x = "Coefficient of Variation", y = "Counts of simulations") +
+  theme_minimal() +
+  coord_flip() +
+  xlim(0,7)+
+  scale_y_continuous(breaks = c(30, 60))+
+  facet_wrap(~sd, ncol = 4, strip.position = "top") +
+  scale_fill_manual(values = mycolors) +
+  ggtitle("Early Life Plasticity Scenario") +
+  theme(
+    legend.position = "none",
+    axis.title.x = element_text(size = 18),
+    axis.title.y = element_text(size = 18),
+    axis.text.x = element_text(size = 14),   # numeri asse x più grandi
+    axis.text.y = element_text(size = 14),   # numeri asse y più grandi
+    plot.title = element_text(size = 20, face = "bold", hjust=0.5),
+    strip.text = element_text(size = 16)
+  )
+p1
+ggsave("plot1.png", plot = p1, width = 5, height = 6, dpi = 300)
+```
+
+```{r}
+immutable_cv_table<- immutable_cv |>
+       group_by(sd) |>
+            summarise(mean_cv = mean(cv), sd =sd(cv))
+immutable_cv_table
+```
+
+```{r}
+immutable_extinction <- c(extinct_count(case1),extinct_count(case2),extinct_count(case3), extinct_count(case4))
+sd_labels <- c("none","low", "medium", "high")
+
+immutable_extinction_df <- data.frame(
+  count = immutable_extinction/500,
+  sd = factor(sd_labels, levels = sd_labels)
+)
+
+```
+
+```{r}
+
+p2 <- ggplot(immutable_extinction_df, aes(x = sd, y = count, fill = sd)) +
+  geom_bar(stat = "identity", color = "black", alpha = 0.7) +
+  scale_fill_manual(values = mycolors) +
+  labs(
+    x = "SD Category",
+    y = "Probability of Extinction",
+    title = "Early Life Plasticity Scenario"
+  ) +
+  ylim(0,1)+
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    axis.title.x = element_text(size = 18),
+    axis.title.y = element_text(size = 18),
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14),
+    plot.title = element_text(size = 20, face = "bold", hjust = 0.5)
+  )
+
+p2
+ggsave("plot2.png", plot = p2, width = 5, height = 6, dpi = 300)
+```
+
+#### Plasticity scenario
+
+Every year the traits of all the alive animals are updated
+
+```{r}
+case5 <-readRDS("../job_sim/RDS/case5.rds")
+case6<-readRDS("../job_sim/RDS/case6.rds")
+case7<- readRDS("../job_sim/RDS/case7.rds")
+case8 <- readRDS("../job_sim/RDS/case8.rds")
+```
+
+```{r}
+plasticity_cv <- bind_rows(
+  data.frame(cv = coefficient_of_variation(case5), sd = "none"),
+  data.frame(cv = coefficient_of_variation(case6), sd = "low"),
+  data.frame(cv = coefficient_of_variation(case7), sd = "medium"),
+  data.frame(cv = coefficient_of_variation(case8), sd = "high")) |>
+  mutate(sd = factor(sd, levels = c("none","low", "medium", "high")))
+```
+
+```{r}
+mycolors <- c("#faf5f6","#e0abb4","#ad3b50","#5e0112")
+p3 <- ggplot(plasticity_cv, aes(x = cv, fill = sd)) +
+  geom_histogram(binwidth = 0.13, color = "black", alpha = 0.6) +
+  geom_vline(
+    data = plasticity_cv |> group_by(sd) |> summarise(mean_cv = mean(cv)),
+    aes(xintercept = mean_cv),
+    color = "black", linetype = "dashed", linewidth = 1
+  ) +
+  labs(x = "Coefficient of Variation", y = "Counts of simulations") +
+  theme_minimal() +
+  coord_flip() +
+  xlim(0,7)+
+  scale_y_continuous(breaks = c(30, 60))+
+  facet_wrap(~sd, ncol = 4, strip.position = "top") +
+  scale_fill_manual(values = mycolors) +
+  ggtitle("Full Plasticity Scenario") +
+  theme(
+    legend.position = "none",
+    axis.title.x = element_text(size = 18),
+    axis.title.y = element_text(size = 18),
+    axis.text.x = element_text(size = 14),  
+    axis.text.y = element_text(size = 14),  
+    plot.title = element_text(size = 20, face = "bold", hjust=0.5),
+    strip.text = element_text(size = 16)
+  )
+p3
+ggsave("plot3.png", plot = p3, width = 5, height = 6, dpi = 300)
+```
+
+```{r}
+plasticity_cv_table<- plasticity_cv |>
+       group_by(sd) |>
+            summarise(mean_cv = mean(cv),sd= sd(cv))
+plasticity_cv_table
+```
+
+```{r}
+plasticity_extinction <- c(extinct_count(case5),extinct_count(case6),extinct_count(case7), extinct_count(case8))
+sd_labels <- c("none","low", "medium", "high")
+
+plasticity_extinction_df <- data.frame(
+  count = plasticity_extinction/500,
+  sd = factor(sd_labels, levels = sd_labels)
+)
+
+```
+
+```{r}
+p4 <- ggplot(plasticity_extinction_df, aes(x = sd, y = count, fill = sd)) +
+  geom_bar(stat = "identity", color = "black", alpha = 0.7) +
+  scale_fill_manual(values = mycolors) +
+  labs(
+    x = "SD Category",
+    y = "Extinction Count",
+    title = "Full Plasticity Scenario"
+  ) +
+  ylim(0,1)+
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    axis.title.x = element_text(size = 18),
+    axis.title.y = element_text(size = 18),
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14),
+    plot.title = element_text(size = 20, face = "bold", hjust = 0.5)
+  )
+
+p4
+ggsave("plot4.png", plot = p4, width = 5, height = 6, dpi = 300) #maybe put it back to 6 and 4 later on
+```
+
+The count of extinctions is hugely greater than the trait given only at birth scenario, why???
+
+```{r}
+data <- data.frame(
+  SD = c("None", "Low", "Medium", "High"),
+  `Mean CV Immutable`      = immutable_cv_table$mean_cv,
+  `Mean CV Flexible`       = plasticity_cv_table$mean_cv,
+  `Extinction % Immutable` = immutable_extinction_df$count ,
+  `Extinction % Flexible`  = plasticity_extinction_df$count 
+)
+
+```
+
+| Sd | Mean CV immutable | Mean CV Flexible | Extinct % Immutable | Extinct % Flexible |
+|----|----|----|----|----|
+| None | 1.123980 | 1.630573 | 0.216 | 0.810 |
+| Low | 1.182187 | 1.639052 | 0.312 | 0.776 |
+| Medium | 1.251113 | 1.679113 | 0.358 | 0.758 |
+| High | 1.439831 | 1.839916 | 0.484 | 0.800 |
+
+```{r}
+
+
+n <- 1e6
+
+
+# Environment
+E <- rnorm(n, mean = 0, sd = 2)
+
+# Case 2: fixed trait
+T_fix <- 2
+psurv_fix <- plogis(T_fix * E)
+
+# Case 1: variable trait
+T_var <- rnorm(n, mean = 2, sd = 0.6)
+psurv_var <- plogis(T_var * E)
+
+
+# mean(psurv_fix)
+# mean(psurv_var)
+mean(psurv_fix)
+mean(psurv_var)
+
+
+```
