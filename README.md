@@ -1,6 +1,6 @@
 # Project Structure
 
-This repository contains simulations and analyses of trait evolution and population stability under varying trait variability and heritability scenarios.
+This repository contains simulations and analyses of trait evolution and population stability under trait variability and heritability scenarios.
 Below is a description of each folder and its contents.
 
 ---
@@ -11,9 +11,9 @@ Below is a description of each folder and its contents.
 
 ## functions_main
 
-- Contains the core functions used throughout the project, continuously updated. The main functions is slightly different for the two scenarios of total plasticity, for the absence of plasticity or for intermediate mix of the two.
-- Other functions folder contain others used in plotting and simulations.
-- All functions here are later sourced by the analysis or the simulations scripts.
+- Contains the core functions used throughout the project, continuously updated. The main functions is slightly different for the three scenarios of: absence of plasticity, total plasticity or for intermediate mix of the two.
+- Other functions folder contain other functions necessary in plotting and simulations.
+- All functions in this folder will be later sourced by the simulations scripts.
 
 ## functions_original
 
